@@ -12,29 +12,38 @@ DES_FILE=""
 DES_DIRECTORY=""
 OutputFormat=""
 fileRegex=""
+SpecifiedOuputDir=false
 
 function  its_a_tvshow {
-	DES_DIRECTORY=`echo "$TV_DEST_DIR"/`
+	if [ "$SpecifiedOuputDir" = false ] ; then
+		DES_DIRECTORY=`echo "$TV_DEST_DIR"/`
+	fi
 	fileRegex=$videoRegex
         OutputFormat=`echo "{plex[1]}/{plex[2]}/{plex[3]} - {group}"`
 }
 
 function its_a_movie {
-        DES_DIRECTORY=`echo "$MOVIES_DEST_DIR"/`
+	if [ "$SpecifiedOuputDir" = false ] ; then
+        	DES_DIRECTORY=`echo "$MOVIES_DEST_DIR"/`
+	fi
 	fileRegex=$videoRegex
 	OutputFormat=`echo "{n} ({y})\{n} ({y})"`
 }
 function usage {
-    echo "usage: transmission-postprocess.sh [-m file path] [-t file path]"
-    echo "  -h      display help"
-    echo "  -m file path   specify movie file path"
-    echo "  -t file path   specify tv show file path"
-    exit 1
+	echo "usage: transmission-postprocess.sh [-m file path] [-t file path]"
+    	echo "  -h 			display help"
+	echo "  -o output path		sepcify output directory"
+    	echo "  -m file path   		specify movie file path"
+    	echo "  -t file path   		specify tv show file path"
+   	 exit 1
 }
 
 function rename {
 	for ((i=0;i<${#SRC_FILE[@]};++i)); do
 		ln "${SRC_FILE[i]}" "${DES_FILE[i]}"
+		if [ "$SearchSub" = true ] ; then
+			echo "linked ${SRC_FILE[i]} to ${DES_FILE[i]}" | tee -a "$SUB"
+		fi
         	/usr/bin/filebot -rename "${DES_FILE[i]}"\
         	--action move\
         	-non-strict\
@@ -56,7 +65,7 @@ if [ $# -eq 0 ]; then
        		its_a_movie
 	fi
 else
-	while getopts ":m:t:h" opt; do
+	while getopts ":m:t:o:h" opt; do
   		case $opt in
     		m)
       			SRC_FILE="$OPTARG" >&2
@@ -66,6 +75,10 @@ else
       			SRC_FILE="$OPTARG" >&2
                         its_a_tvshow 
       		;;
+		o)
+			DES_DIRECTORY="$OPTARG" >&2
+			SpecifiedOuputDir=true
+		;;
     		h)
         		usage
         	;;
